@@ -7,7 +7,7 @@ const BANK_CONFIG = {
   accountName: 'CAO BA THANG', 
 };
 
-// 2. DỮ LIỆU CÔNG VIỆC
+// 2. DỮ LIỆU CÔNG VIỆC (Mục tiêu nối tiếp nhau)
 const JOB_MILESTONES = [
   { id: 1, title: 'Cứu đói khẩn cấp', target: 100000, icon: '🍜', desc: 'Đổ đầy bát Pate để Tuco cày cuốc đêm nay.' },
   { id: 2, title: 'Duy trì kết nối (Wifi)', target: 500000, icon: '⚡', desc: 'Đóng tiền mạng tháng này để chốt đơn.' },
@@ -64,12 +64,15 @@ export default function App() {
   }, [totalRaised, wishes, jobs]);
 
   const weather = WINDOW_WEATHER[weatherIndex];
+  
+  // Tính toán tiến độ công việc
   const currentJobIndex = JOB_MILESTONES.findIndex(job => totalRaised < job.target);
   const activeJob = currentJobIndex !== -1 ? JOB_MILESTONES[currentJobIndex] : JOB_MILESTONES[JOB_MILESTONES.length - 1];
   const prevTarget = currentJobIndex > 0 ? JOB_MILESTONES[currentJobIndex - 1].target : 0;
   const currentJobProgress = currentJobIndex !== -1 ? Math.min(100, Math.max(0, ((totalRaised - prevTarget) / (activeJob.target - prevTarget)) * 100)) : 100;
 
   const cycleWeather = () => setWeatherIndex((prev) => (prev + 1) % WINDOW_WEATHER.length);
+  
   const getBowlStatus = () => {
     if (currentJobProgress === 0) return "Bát trống không 😿";
     if (currentJobProgress < 30) return "Mới lót đáy bát";
@@ -168,7 +171,7 @@ export default function App() {
             <div className="text-xl font-black drop-shadow-md group-hover:animate-pulse">⚡ LÌ XÌ ĐỔ ĐẦY BÁT CHO TUCO</div>
           </button>
 
-          {/* NHẬT KÝ ĐÃ ĐƯỢC CHUYỂN XUỐNG DƯỚI NÚT ĐỔ BÁT */}
+          {/* NHẬT KÝ */}
           <div className="w-full bg-[#d9c4aa] border-[3px] border-[#a68460] rounded-2xl p-3 flex flex-col shadow-lg mt-2">
             <div className="flex justify-between items-center mb-2 px-1">
               <span className="font-black text-[#5c3a21] text-sm flex items-center gap-2">
@@ -188,11 +191,6 @@ export default function App() {
                 <span className="font-black text-blue-700 mr-1">[Sen]</span>
                 <span className="text-[#5c3a21] font-medium">Cô chú donate giúp Tuco đầy bát nhé, nãy giờ gõ phím mỏi tay móng vuốt mòn hết rồi.</span>
               </div>
-              <div className="bg-[#fef9eb] border border-[#e8d5b5] p-2 rounded-lg text-xs leading-relaxed shadow-sm">
-                <span className="bg-orange-200 text-orange-800 font-bold px-1.5 py-0.5 rounded text-[10px] mr-1">08:00</span>
-                <span className="font-black text-green-700 mr-1">[Tuco]</span>
-                <span className="text-[#5c3a21] font-medium">Bắt đầu ngày mới! Check lịch làm việc nào... Toàn KPI mệt mỏi quá đi mất.</span>
-              </div>
             </div>
           </div>
         </div>
@@ -200,7 +198,7 @@ export default function App() {
         {/* ================= CỘT PHẢI: TẤT CẢ CÁC MỤC (SCROLL) ================= */}
         <div className="lg:col-span-7 flex flex-col gap-6">
           
-          {/* TỔNG QUỸ & LỘ TRÌNH */}
+          {/* TỔNG QUỸ & LỘ TRÌNH KHÓA/MỞ (LOCKED / UNLOCKED) */}
           <div className="bg-white p-6 rounded-[2rem] shadow-lg border border-gray-100">
             <div className="flex justify-between items-end mb-4">
               <div>
@@ -209,21 +207,48 @@ export default function App() {
               </div>
             </div>
             
-            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 border-t pt-4">📋 Lộ trình Mục tiêu</h2>
+            <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3 border-t pt-4">📋 Lộ trình Mục tiêu (Tuần tự)</h2>
             <div className="space-y-3">
               {JOB_MILESTONES.map((job, index) => {
                 const isDone = totalRaised >= job.target;
                 const isCurrent = index === currentJobIndex;
+                const isLocked = index > currentJobIndex && currentJobIndex !== -1; // Khóa các mục tiêu phía sau
+
                 return (
-                  <div key={job.id} className={`p-3 rounded-2xl border-2 flex items-center justify-between gap-3 ${isDone ? 'bg-green-50/50 border-green-200' : isCurrent ? 'bg-orange-50 border-orange-300' : 'bg-gray-50 border-gray-100'}`}>
+                  <div key={job.id} className={`p-3 rounded-2xl border-2 flex items-center justify-between gap-3 transition-all ${
+                    isDone 
+                      ? 'bg-green-50/50 border-green-200' 
+                      : isCurrent 
+                        ? 'bg-orange-50 border-orange-300 ring-2 ring-orange-100' 
+                        : 'bg-gray-100 border-gray-200 opacity-60' // Trạng thái khóa mờ đi
+                  }`}>
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{isDone ? '✅' : job.icon}</span>
+                      <span className="text-2xl">
+                        {isDone ? '✅' : isLocked ? '🔒' : job.icon}
+                      </span>
                       <div>
-                        <div className={`font-extrabold text-sm ${isDone ? 'text-green-800' : 'text-gray-900'}`}>{job.title}</div>
+                        <div className={`font-extrabold text-sm flex items-center gap-2 ${isDone ? 'text-green-800' : isLocked ? 'text-gray-500' : 'text-gray-900'}`}>
+                          {job.title}
+                          {isLocked && <span className="text-[9px] bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded font-bold uppercase">Đang khóa</span>}
+                        </div>
                         <div className="text-[11px] text-gray-500">{job.desc}</div>
                       </div>
                     </div>
-                    {!isDone && <button onClick={() => setSelectedQR({ name: job.title, amount: 20000, icon: job.icon })} className="text-[10px] font-bold text-white bg-orange-500 px-3 py-1.5 rounded-lg shrink-0">Ủng hộ</button>}
+
+                    {/* Nút bấm chỉ sáng khi đây là mục tiêu hiện tại (isCurrent). Đã xong hoặc bị khóa thì không bấm được */}
+                    {!isDone && (
+                      <button 
+                        onClick={() => !isLocked && setSelectedQR({ name: job.title, amount: Math.max(10000, job.target - totalRaised), icon: job.icon })} 
+                        disabled={isLocked}
+                        className={`text-[10px] font-bold px-3 py-1.5 rounded-lg shrink-0 transition-all ${
+                          isLocked 
+                            ? 'bg-gray-200 text-gray-400 cursor-not-allowed border border-gray-300' 
+                            : 'bg-orange-500 hover:bg-orange-600 text-white shadow-sm'
+                        }`}
+                      >
+                        {isLocked ? 'Chưa mở' : 'Ủng hộ'}
+                      </button>
+                    )}
                   </div>
                 );
               })}
